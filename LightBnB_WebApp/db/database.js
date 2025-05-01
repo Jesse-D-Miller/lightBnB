@@ -8,9 +8,6 @@ const pool = new Pool({
   host: "localhost",
   database: "lightbnb"
 });
-// the following assumes that you named your connection variable `pool`
-// pool.query(`SELECT title FROM properties LIMIT 10;`).then(response => { console.log(response) })
-
 
 /// Users
 
@@ -84,7 +81,36 @@ const addUser = function (user) {
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function (guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  return pool
+    .query(
+      `SELECT reservations.id,
+        properties.title,
+        properties.cost_per_night,
+        reservations.start_date,
+        avg(rating) as average_rating
+      FROM reservations
+      JOIN properties ON reservations.property_id = properties.id
+      JOIN property_reviews ON properties.id = property_reviews.property_id
+      WHERE reservations.guest_id = $1
+      GROUP BY properties.id, reservations.id
+      ORDER BY reservations.start_date
+      LIMIT $2`,
+      [guest_id, limit]
+    )
+    .then((result) => {
+      return result.rows[0] || null;
+    })
+    .catch((err) => {
+      console.error('Database error:', err.message);
+      return null;
+    });
+
+
+
+
+
+
+  // return getAllProperties(null, 2);
 };
 
 /// Properties
